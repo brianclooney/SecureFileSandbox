@@ -3,6 +3,8 @@ using FluentValidation;
 using Serilog;
 using Serilog.Events;
 using Swashbuckle.AspNetCore.Swagger;
+using Microsoft.EntityFrameworkCore;
+using RestFileService.Data;
 using RestFileService.Features.Users;
 using RestFileService.Features.Users.Endpoints;
 using RestFileService.Middleware;
@@ -19,13 +21,19 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 builder.Services.AddScoped<IPasswordHasher, AspIdentityPasswordHasher>();
-builder.Services.AddScoped<IUserRepository, DummyUserRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.AddMvcCore();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddCarter();
+
+builder.Services.AddDbContext<ApplicationDbContext>(options => 
+{
+    var connectionString = builder.Configuration.GetConnectionString("Database");
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+});
 
 builder.Services.AddExceptionHandler<MyCustomExceptionHandler>();
 
