@@ -3,14 +3,14 @@ using FluentValidation;
 
 namespace RestFileService.Features.Users.Endpoints;
 
-public record UserLoginRequest(string UserNameOrEmail, string Password);
+public record UserLoginRequest(string UserName, string Password);
 public record UserLoginResponse(bool IsSuccess);
 
 public class UserLoginRequestValidator : AbstractValidator<UserLoginRequest>
 {
     public UserLoginRequestValidator()
     {
-        RuleFor(x => x.UserNameOrEmail).NotEmpty();
+        RuleFor(x => x.UserName).NotEmpty();
         RuleFor(x => x.Password).NotEmpty();
     }
 }
@@ -24,10 +24,9 @@ public class UserLogin : ICarterModule
 
     public async Task<IResult> UserLoginDelegate(UserLoginRequest request, IUserRepository repository, IPasswordHasher passwordHasher)
     {
-        var passwordHash = passwordHasher.HashPassword(request.Password);
-        var user = await repository.GetUserByLoginAsync(request.UserNameOrEmail, passwordHash);
+        var user = await repository.GetUserByUserNameAsync(request.UserName);
 
-        if (user is null)
+        if (user is null || !passwordHasher.VerifyPassword(user.PasswordHash, request.Password))
         {
             return Results.Unauthorized();
         }

@@ -2,6 +2,7 @@ using Moq;
 using FluentAssertions;
 using FluentValidation.TestHelper;
 using Microsoft.AspNetCore.Http.HttpResults;
+// using Microsoft.AspNetCore.Mvc;
 using RestFileService.Features.Users;
 using RestFileService.Features.Users.Endpoints;
 
@@ -27,8 +28,8 @@ public class UserLoginTests
         var user = User.Create("John", "Doe", "johndoe", "john.doe@example.com", hashedPassword);
         var request = new UserLoginRequest("johndoe", enteredPassword);
 
-        passwordHasherMock.Setup(ph => ph.HashPassword(enteredPassword)).Returns(hashedPassword);
-        repositoryMock.Setup(repo => repo.GetUserByLoginAsync("johndoe", hashedPassword)).ReturnsAsync(user);
+        passwordHasherMock.Setup(ph => ph.VerifyPassword(hashedPassword, enteredPassword)).Returns(true);
+        repositoryMock.Setup(repo => repo.GetUserByUserNameAsync("johndoe")).ReturnsAsync(user);
 
         var userLoginModule = new UserLogin();
 
@@ -39,8 +40,56 @@ public class UserLoginTests
         var okResult = Assert.IsType<Ok<UserLoginResponse>>(result);
         okResult.Value.Should().NotBeNull();
         okResult.Value?.IsSuccess.Should().Be(true);
-        repositoryMock.Verify(x => x.GetUserByLoginAsync("johndoe", hashedPassword), Times.Once);
-        passwordHasherMock.Verify(x => x.HashPassword(enteredPassword), Times.Once);
+        repositoryMock.Verify(x => x.GetUserByUserNameAsync("johndoe"), Times.Once);
+        passwordHasherMock.Verify(x => x.VerifyPassword(hashedPassword, enteredPassword), Times.Once);
+    }
+
+    [Fact]
+    public async void UserLogin_InvalidUserName_ReturnsUnauthorizedResponse()
+    {
+        // Arrange
+        var enteredPassword = "Password1234";
+        var hashedPassword = "hashedPassword";
+        var repositoryMock = new Mock<IUserRepository>();
+        var passwordHasherMock = new Mock<IPasswordHasher>();
+        var request = new UserLoginRequest("johndoe", enteredPassword);
+
+        repositoryMock.Setup(repo => repo.GetUserByUserNameAsync("johndoe")).ReturnsAsync((User?)null);
+
+        var userLoginModule = new UserLogin();
+
+        // Act
+        var result = await userLoginModule.UserLoginDelegate(request, repositoryMock.Object, passwordHasherMock.Object);
+
+        // Assert
+        Assert.IsType<UnauthorizedHttpResult>(result);
+        repositoryMock.Verify(x => x.GetUserByUserNameAsync("johndoe"), Times.Once);
+        passwordHasherMock.Verify(x => x.VerifyPassword(hashedPassword, enteredPassword), Times.Never);
+    }
+
+    [Fact]
+    public async void UserLogin_InvalidPassword_ReturnsUnauthorizedResponse()
+    {
+        // Arrange
+        var enteredPassword = "Password1234";
+        var hashedPassword = "hashedPassword";
+        var repositoryMock = new Mock<IUserRepository>();
+        var passwordHasherMock = new Mock<IPasswordHasher>();
+        var user = User.Create("John", "Doe", "johndoe", "john.doe@example.com", hashedPassword);
+        var request = new UserLoginRequest("johndoe", enteredPassword);
+
+        passwordHasherMock.Setup(ph => ph.VerifyPassword(hashedPassword, enteredPassword)).Returns(false);
+        repositoryMock.Setup(repo => repo.GetUserByUserNameAsync("johndoe")).ReturnsAsync(user);
+
+        var userLoginModule = new UserLogin();
+
+        // Act
+        var result = await userLoginModule.UserLoginDelegate(request, repositoryMock.Object, passwordHasherMock.Object);
+
+        // Assert
+        Assert.IsType<UnauthorizedHttpResult>(result);
+        repositoryMock.Verify(x => x.GetUserByUserNameAsync("johndoe"), Times.Once);
+        passwordHasherMock.Verify(x => x.VerifyPassword(hashedPassword, enteredPassword), Times.Once);
     }
 
     [Fact]
@@ -56,7 +105,7 @@ public class UserLoginTests
     {
         var request = new UserLoginRequest("", "Password1234");
         var result = validator.TestValidate(request);
-        result.ShouldHaveValidationErrorFor(user => user.UserNameOrEmail);
+        result.ShouldHaveValidationErrorFor(user => user.UserName);
     }
 
     [Fact]
