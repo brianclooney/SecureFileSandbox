@@ -2,6 +2,7 @@ using Moq;
 using FluentAssertions;
 using FluentValidation.TestHelper;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Logging;
 using RestFileService.Features.Users;
 using RestFileService.Features.Users.Endpoints;
 
@@ -9,11 +10,11 @@ namespace RestFileService.Tests.Features.Users.Endpoints;
 
 public class CreateUserTests
 {
-    private CreateUserRequestValidator validator;
+    private CreateUser _createUserModule;
 
     public CreateUserTests()
     {
-        validator = new CreateUserRequestValidator();
+        _createUserModule = new CreateUser();
     }
 
     [Fact]
@@ -28,10 +29,8 @@ public class CreateUserTests
         passwordHasherMock.Setup(ph => ph.HashPassword("password123")).Returns("hashedPassword");
         repositoryMock.Setup(repo => repo.CreateUserAsync(It.IsAny<User>())).ReturnsAsync(userId);
 
-        var createUserModule = new CreateUser();
-
         // Act
-        var result = await createUserModule.CreateUserDelegate(request, repositoryMock.Object, passwordHasherMock.Object);
+        var result = await _createUserModule.CreateUserDelegate(request, repositoryMock.Object, passwordHasherMock.Object);
 
         // Assert
         var createdResult = Assert.IsType<Created<CreateUserResponse>>(result);
@@ -47,7 +46,7 @@ public class CreateUserTests
     public void CreateUserRequestValidator_WhenRequestIsValid_ShouldNotReturnValidationErrors()
     {
         var request = new CreateUserRequest("John", "Doe", "johndoe", "john.doe@example.com", "password123");
-        var result = validator.TestValidate(request);
+        var result = _createUserModule.TestValidate(request);
         result.ShouldNotHaveAnyValidationErrors();
     }
 
@@ -55,7 +54,7 @@ public class CreateUserTests
     public void CreateUserRequestValidator_WhenFirstNameIsEmpty_ShouldReturnValidationErrors()
     {
         var request = new CreateUserRequest("", "Doe", "johndoe", "john.doe@example.com", "password123");
-        var result = validator.TestValidate(request);
+        var result = _createUserModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.FirstName);
     }
 
@@ -63,7 +62,7 @@ public class CreateUserTests
     public void CreateUserRequestValidator_WhenFirstNameIsTooLong_ShouldReturnValidationErrors()
     {
         var request = new CreateUserRequest(new string('A', 51), "Doe", "johndoe", "john.doe@example.com", "password123");
-        var result = validator.TestValidate(request);
+        var result = _createUserModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.FirstName);
     }
 
@@ -71,7 +70,7 @@ public class CreateUserTests
     public void CreateUserRequestValidator_WhenLastNameIsEmpty_ShouldReturnValidationErrors()
     {
         var request = new CreateUserRequest("John", "", "johndoe", "john.doe@example.com", "password123");
-        var result = validator.TestValidate(request);
+        var result = _createUserModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.LastName);
     }
 
@@ -79,7 +78,7 @@ public class CreateUserTests
     public void CreateUserRequestValidator_WhenLastNameIsTooLong_ShouldReturnValidationErrors()
     {
         var request = new CreateUserRequest("John", new string('A', 51), "johndoe", "john.doe@example.com", "password123");
-        var result = validator.TestValidate(request);
+        var result = _createUserModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.LastName);
     }
 
@@ -87,7 +86,7 @@ public class CreateUserTests
     public void CreateUserRequestValidator_WhenEmailIsEmpty_ShouldReturnValidationErrors()
     {
         var request = new CreateUserRequest("John", "Doe", "johndoe", "", "password123");
-        var result = validator.TestValidate(request);
+        var result = _createUserModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.Email);
     }
 
@@ -95,7 +94,7 @@ public class CreateUserTests
     public void CreateUserRequestValidator_WhenEmailIsInvalid_ShouldReturnValidationErrors()
     {
         var request = new CreateUserRequest("John", "Doe", "johndoe", "myemail", "password123");
-        var result = validator.TestValidate(request);
+        var result = _createUserModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.Email);
     }
 
@@ -103,7 +102,7 @@ public class CreateUserTests
     public void CreateUserRequestValidator_WhenUserNameIsEmpty_ShouldReturnValidationErrors()
     {
         var request = new CreateUserRequest("John", "Doe", "", "john.doe@example.com", "password123");
-        var result = validator.TestValidate(request);
+        var result = _createUserModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.UserName);
     }
 
@@ -111,7 +110,7 @@ public class CreateUserTests
     public void CreateUserRequestValidator_WhenUserNameIsTooLong_ShouldReturnValidationErrors()
     {
         var request = new CreateUserRequest("John", "Doe", new string('A', 51), "john.doe@example.com", "password123");
-        var result = validator.TestValidate(request);
+        var result = _createUserModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.UserName);
     }
 
@@ -119,7 +118,7 @@ public class CreateUserTests
     public void CreateUserRequestValidator_WhenPasswordIsTooShort_ShouldReturnValidationErrors()
     {
         var request = new CreateUserRequest("John", "Doe", "jdoe", "john.doe@example.com", "12345");
-        var result = validator.TestValidate(request);
+        var result = _createUserModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.Password);
     }
 
@@ -127,7 +126,7 @@ public class CreateUserTests
     public void CreateUserRequestValidator_WhenAllFieldsAreInvalid_ShouldReturnValidationErrors()
     {
         var request = new CreateUserRequest("", "", "", "", "");
-        var result = validator.TestValidate(request);
+        var result = _createUserModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.FirstName);
         result.ShouldHaveValidationErrorFor(user => user.LastName);
         result.ShouldHaveValidationErrorFor(user => user.Email);

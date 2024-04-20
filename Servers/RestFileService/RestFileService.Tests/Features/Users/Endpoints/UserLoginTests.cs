@@ -10,11 +10,11 @@ namespace RestFileService.Tests.Features.Users.Endpoints;
 
 public class UserLoginTests
 {
-    private UserLoginRequestValidator validator;
+    private UserLogin _userLoginModule;
 
     public UserLoginTests()
     {
-        validator = new UserLoginRequestValidator();
+        _userLoginModule = new UserLogin();
     }
 
     [Fact]
@@ -31,10 +31,8 @@ public class UserLoginTests
         passwordHasherMock.Setup(ph => ph.VerifyPassword(hashedPassword, enteredPassword)).Returns(true);
         repositoryMock.Setup(repo => repo.GetUserByUserNameAsync("johndoe")).ReturnsAsync(user);
 
-        var userLoginModule = new UserLogin();
-
         // Act
-        var result = await userLoginModule.UserLoginDelegate(request, repositoryMock.Object, passwordHasherMock.Object);
+        var result = await _userLoginModule.UserLoginDelegate(request, repositoryMock.Object, passwordHasherMock.Object);
 
         // Assert
         var okResult = Assert.IsType<Ok<UserLoginResponse>>(result);
@@ -56,10 +54,8 @@ public class UserLoginTests
 
         repositoryMock.Setup(repo => repo.GetUserByUserNameAsync("johndoe")).ReturnsAsync((User?)null);
 
-        var userLoginModule = new UserLogin();
-
         // Act
-        var result = await userLoginModule.UserLoginDelegate(request, repositoryMock.Object, passwordHasherMock.Object);
+        var result = await _userLoginModule.UserLoginDelegate(request, repositoryMock.Object, passwordHasherMock.Object);
 
         // Assert
         Assert.IsType<UnauthorizedHttpResult>(result);
@@ -81,10 +77,8 @@ public class UserLoginTests
         passwordHasherMock.Setup(ph => ph.VerifyPassword(hashedPassword, enteredPassword)).Returns(false);
         repositoryMock.Setup(repo => repo.GetUserByUserNameAsync("johndoe")).ReturnsAsync(user);
 
-        var userLoginModule = new UserLogin();
-
         // Act
-        var result = await userLoginModule.UserLoginDelegate(request, repositoryMock.Object, passwordHasherMock.Object);
+        var result = await _userLoginModule.UserLoginDelegate(request, repositoryMock.Object, passwordHasherMock.Object);
 
         // Assert
         Assert.IsType<UnauthorizedHttpResult>(result);
@@ -96,7 +90,7 @@ public class UserLoginTests
     public void UserLoginRequestValidator_WhenRequestIsValid_ShouldNotReturnValidationErrors()
     {
         var request = new UserLoginRequest("johndoe", "Password1234");
-        var result = validator.TestValidate(request);
+        var result = _userLoginModule.TestValidate(request);
         result.ShouldNotHaveAnyValidationErrors();
     }
 
@@ -104,7 +98,7 @@ public class UserLoginTests
     public void UserLoginRequestValidator_WhenUserNameIsEmpty_ShouldReturnValidationErrors()
     {
         var request = new UserLoginRequest("", "Password1234");
-        var result = validator.TestValidate(request);
+        var result = _userLoginModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.UserName);
     }
 
@@ -112,7 +106,7 @@ public class UserLoginTests
     public void UserLoginRequestValidator_WhenPasswordIsEmpty_ShouldReturnValidationErrors()
     {
         var request = new UserLoginRequest("johndoe", "");
-        var result = validator.TestValidate(request);
+        var result = _userLoginModule.TestValidate(request);
         result.ShouldHaveValidationErrorFor(user => user.Password);
     }
 }

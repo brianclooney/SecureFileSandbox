@@ -4,6 +4,8 @@ using Serilog;
 using Serilog.Events;
 using Swashbuckle.AspNetCore.Swagger;
 using RestFileService.Features.Users;
+using RestFileService.Features.Users.Endpoints;
+using RestFileService.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,14 +18,16 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-builder.Services.AddCarter();
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddScoped<IPasswordHasher, AspIdentityPasswordHasher>();
 builder.Services.AddScoped<IUserRepository, DummyUserRepository>();
 
 builder.Services.AddMvcCore();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddCarter();
+
+builder.Services.AddExceptionHandler<MyCustomExceptionHandler>();
 
 var app = builder.Build();
 
@@ -34,7 +38,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseSerilogRequestLogging();
-
 app.MapCarter();
+
+app.UseExceptionHandler(options => {});
 
 app.Run();
