@@ -7,7 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using RestFileService.Data;
 using RestFileService.Features.Users;
 using RestFileService.Features.Users.Endpoints;
-using RestFileService.Middleware;
+using RestFileService.Common.Middleware;
+using RestFileService.Common.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,7 @@ builder.Host.UseSerilog();
 
 builder.Services.AddScoped<IPasswordHasher, AspIdentityPasswordHasher>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ITokenService, JwtTokenService>();
 
 builder.Services.AddMvcCore();
 builder.Services.AddEndpointsApiExplorer();

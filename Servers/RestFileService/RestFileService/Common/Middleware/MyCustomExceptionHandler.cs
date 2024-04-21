@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
-namespace RestFileService.Middleware;
+namespace RestFileService.Common.Middleware;
 
 public class MyCustomExceptionHandler(ILogger<MyCustomExceptionHandler> logger) : IExceptionHandler
 {

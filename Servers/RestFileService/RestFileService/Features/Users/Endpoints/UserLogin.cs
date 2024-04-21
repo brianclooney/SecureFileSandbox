@@ -1,10 +1,11 @@
 using Carter;
 using FluentValidation;
+using RestFileService.Common.Services;
 
 namespace RestFileService.Features.Users.Endpoints;
 
 public record UserLoginRequest(string UserName, string Password);
-public record UserLoginResponse(bool IsSuccess);
+public record UserLoginResponse(string Token);
 
 public class UserLogin : AbstractValidator<UserLoginRequest>, ICarterModule
 {
@@ -19,7 +20,7 @@ public class UserLogin : AbstractValidator<UserLoginRequest>, ICarterModule
         app.MapPost("/users/login", UserLoginDelegate);
     }
 
-    public async Task<IResult> UserLoginDelegate(UserLoginRequest request, IUserRepository repository, IPasswordHasher passwordHasher)
+    public async Task<IResult> UserLoginDelegate(UserLoginRequest request, IUserRepository repository, IPasswordHasher passwordHasher, ITokenService tokenService)
     {
         this.ValidateAndThrow(request);
 
@@ -30,6 +31,8 @@ public class UserLogin : AbstractValidator<UserLoginRequest>, ICarterModule
             return Results.Unauthorized();
         }
 
-        return Results.Ok(new UserLoginResponse(true));
+        var token = tokenService.GenerateTokenForUser(user.Id, user.FullName, user.Email, new List<string>());
+
+        return Results.Ok(new UserLoginResponse(token));
     }
 }
