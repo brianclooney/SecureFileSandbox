@@ -19,7 +19,7 @@ public class UserLoginTests
     }
 
     [Fact]
-    public async void UserLogin_ValidRequest_ReturnsOkResponse()
+    public async void UserLogin_ShouldReturnOkResponse_WhenRequestIsvalid()
     {
         // Arrange
         var enteredPassword = "Password1234";
@@ -32,6 +32,10 @@ public class UserLoginTests
 
         passwordHasherMock.Setup(ph => ph.VerifyPassword(hashedPassword, enteredPassword)).Returns(true);
         repositoryMock.Setup(repo => repo.GetUserByUserNameAsync("johndoe")).ReturnsAsync(user);
+        // tokenServiceMock.Setup(ts => ts.GenerateTokenForResource("files", It.IsAny<string>())).Returns("valid_token_string");
+        tokenServiceMock
+            .Setup(ts => ts.GenerateTokenForUser(user.Id, user.FullName, user.Email, It.IsAny<List<string>>(), null))
+            .Returns("valid_token_string");
 
         // Act
         var result = await _userLoginModule.UserLoginDelegate(request, repositoryMock.Object, passwordHasherMock.Object, tokenServiceMock.Object);
@@ -39,13 +43,14 @@ public class UserLoginTests
         // Assert
         var okResult = Assert.IsType<Ok<UserLoginResponse>>(result);
         okResult.Value.Should().NotBeNull();
-        // okResult.Value?.IsSuccess.Should().Be(true);
+        okResult.Value?.Token.Should().NotBeNull();
+        okResult.Value?.Token?.Should().Be("valid_token_string");
         repositoryMock.Verify(x => x.GetUserByUserNameAsync("johndoe"), Times.Once);
         passwordHasherMock.Verify(x => x.VerifyPassword(hashedPassword, enteredPassword), Times.Once);
     }
 
     [Fact]
-    public async void UserLogin_InvalidUserName_ReturnsUnauthorizedResponse()
+    public async void UserLogin_ShouldReturnUnauthorizedResponse_WhenUserNameIsInvalid()
     {
         // Arrange
         var enteredPassword = "Password1234";
@@ -67,7 +72,7 @@ public class UserLoginTests
     }
 
     [Fact]
-    public async void UserLogin_InvalidPassword_ReturnsUnauthorizedResponse()
+    public async void UserLogin_ShouldReturnUnauthorizedResponse_WhenPasswordIsInvalid()
     {
         // Arrange
         var enteredPassword = "Password1234";
@@ -91,26 +96,41 @@ public class UserLoginTests
     }
 
     [Fact]
-    public void UserLoginRequestValidator_WhenRequestIsValid_ShouldNotReturnValidationErrors()
+    public void UserLoginRequestValidator_ShouldNotReturnValidationErrors_WhenRequestIsValid()
     {
+        // Arrange
         var request = new UserLoginRequest("johndoe", "Password1234");
+
+        // Act
         var result = _userLoginModule.TestValidate(request);
+
+        // Assert
         result.ShouldNotHaveAnyValidationErrors();
     }
 
     [Fact]
-    public void UserLoginRequestValidator_WhenUserNameIsEmpty_ShouldReturnValidationErrors()
+    public void UserLoginRequestValidator_ShouldReturnValidationErrors_WhenUserNameIsEmpty()
     {
+        // Arrange
         var request = new UserLoginRequest("", "Password1234");
+
+        // Act
         var result = _userLoginModule.TestValidate(request);
+
+        // Assert
         result.ShouldHaveValidationErrorFor(user => user.UserName);
     }
 
     [Fact]
-    public void UserLoginRequestValidator_WhenPasswordIsEmpty_ShouldReturnValidationErrors()
+    public void UserLoginRequestValidator_ShouldReturnValidationErrors_WhenPasswordIsEmpty()
     {
+        // Arrange
         var request = new UserLoginRequest("johndoe", "");
+
+        // Act
         var result = _userLoginModule.TestValidate(request);
+
+        // Assert
         result.ShouldHaveValidationErrorFor(user => user.Password);
     }
 }

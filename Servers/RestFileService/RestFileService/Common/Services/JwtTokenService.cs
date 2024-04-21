@@ -15,25 +15,38 @@ public class JwtTokenService : ITokenService
         _signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(SecretKey));
     }
 
-    public string GenerateTokenForResource(string resourceId)
+    public string GenerateTokenForResource(string scope, TimeSpan? lifeSpan = null)
     {
         var claims = new List<Claim>
         {
-            new Claim("res", resourceId),
+            new Claim("scope", scope),
             new Claim("jti", Guid.NewGuid().ToString())
         };
 
-        return GenerateToken(claims);
+        return GenerateToken(claims, lifeSpan ?? TimeSpan.FromMinutes(60));
     }
 
-    public string GenerateTokenForUser(Guid userId, string userName, string email, List<string> groups)
+
+    public string GenerateTokenForResources(List<string> scopes, TimeSpan? lifeSpan = null)
+    {
+        var claims = new List<Claim>
+        {
+            new Claim("scope", string.Join(" ", scopes)),
+            new Claim("jti", Guid.NewGuid().ToString())
+        };
+
+        return GenerateToken(claims, lifeSpan ?? TimeSpan.FromMinutes(60));
+    }
+
+    public string GenerateTokenForUser(Guid userId, string userName, string email, List<string> groups, TimeSpan? lifeSpan = null)
     {
         var claims = new List<Claim>
         {
             new Claim("name", userName),
             new Claim("email", email),
             new Claim("sub", userId.ToString()),
-            new Claim("jti", Guid.NewGuid().ToString())
+            new Claim("jti", Guid.NewGuid().ToString()),
+            new Claim("admin", true.ToString().ToLower())
         };
 
         foreach (var group in groups)
@@ -41,7 +54,7 @@ public class JwtTokenService : ITokenService
             claims.Add(new Claim("groups", group));
         }
 
-        return GenerateToken(claims);
+        return GenerateToken(claims, lifeSpan ?? TimeSpan.FromMinutes(15));
     }
 
     public bool ValidateToken(string token)
@@ -71,13 +84,13 @@ public class JwtTokenService : ITokenService
         }
     }
 
-    private string GenerateToken(List<Claim> claims)
+    private string GenerateToken(List<Claim> claims, TimeSpan lifeSpan)
     {
         var token = new JwtSecurityToken(
             issuer: "MyIssuer",
             audience: "MyAudience",
             claims: claims,
-            expires: DateTime.Now.AddMinutes(15),
+            expires: DateTime.Now.Add(lifeSpan),
             signingCredentials: new SigningCredentials(_signingKey, SecurityAlgorithms.HmacSha256)
         );
 

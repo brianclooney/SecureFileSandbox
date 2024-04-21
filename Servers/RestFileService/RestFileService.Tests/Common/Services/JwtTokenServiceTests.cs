@@ -52,18 +52,18 @@ public class JwtTokenServiceTests
         var resourceId = "12345";
 
         // Act
-        var token = _jwtTokenService.GenerateTokenForResource(resourceId);
+        var token = _jwtTokenService.GenerateTokenForResource($"files:read:{resourceId}");
         
         // Assert
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
 
-        jwtToken.Claims.FirstOrDefault(c => c.Type == "res").Should().NotBeNull();
-        jwtToken.Claims.FirstOrDefault(c => c.Type == "res")?.Value.Should().Be(resourceId);
+        jwtToken.Claims.FirstOrDefault(c => c.Type == "scope").Should().NotBeNull();
+        jwtToken.Claims.FirstOrDefault(c => c.Type == "scope")?.Value.Should().Be($"files:read:{resourceId}");
     }
 
     [Fact]
-    public void ValidateToken_WithValidToken_ReturnsTrue()
+    public void ValidateToken_ShouldReturnTrue_WhenTokenIsValid()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -80,7 +80,7 @@ public class JwtTokenServiceTests
     }
 
     [Fact]
-    public void ValidateToken_WithInvalidToken_ReturnsFalse()
+    public void ValidateToken_ShouldReturnFalse_WhenTokenIsInvalid()
     {
         // Arrange
         var invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzb21lX3VzZXIifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";

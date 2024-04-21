@@ -31,7 +31,9 @@ public class UserLogin : AbstractValidator<UserLoginRequest>, ICarterModule
             return Results.Unauthorized();
         }
 
-        var token = tokenService.GenerateTokenForUser(user.Id, user.FullName, user.Email, new List<string>());
+        var groups = new List<string>(["admin", "member:rw", "moderator:ro"]);
+        var token = tokenService.GenerateTokenForUser(user.Id, user.FullName, user.Email, groups);
+        // var token = tokenService.GenerateTokenForResource("files", Guid.NewGuid().ToString());
 
         return Results.Ok(new UserLoginResponse(token));
     }
