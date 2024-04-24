@@ -5,6 +5,7 @@ using Serilog.Events;
 using Swashbuckle.AspNetCore.Swagger;
 using Microsoft.EntityFrameworkCore;
 using RestFileService.Data;
+using RestFileService.Data.Extensions;
 using RestFileService.Features.Users;
 using RestFileService.Features.Users.Endpoints;
 using RestFileService.Common.Middleware;
@@ -51,5 +52,10 @@ app.UseSerilogRequestLogging();
 app.MapCarter();
 
 app.UseExceptionHandler(options => {});
+
+if (app.Environment.IsDevelopment())
+{
+    await app.InitializeDatabaseAsync();
+}
 
 app.Run();
