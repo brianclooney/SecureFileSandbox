@@ -17,8 +17,7 @@ env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
-
+  IMAGE_NAME: ${{ github.repository_owner }}/RestFileService
 
 jobs:
   build:
@@ -94,4 +93,4 @@ jobs:
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
         # run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
-        run: echo "XX ${TAGS} ${DIGEST}"
+        run: echo "XX ${TAGS} ${DIGEST} ${}"
