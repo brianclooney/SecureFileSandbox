@@ -4,16 +4,17 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using RestFileService.Common.Services;
+using Moq;
 
 namespace RestFileService.Tests.Common.Services;
 
 public class JwtTokenServiceTests
 {
-    private JwtTokenService _jwtTokenService;
+    // private JwtTokenService _jwtTokenService;
 
     public JwtTokenServiceTests()
     {
-        _jwtTokenService = new JwtTokenService();
+        // _jwtTokenService = new JwtTokenService();
     }
 
     [Fact]
@@ -25,8 +26,15 @@ public class JwtTokenServiceTests
         var email = "john.doe@example.com";
         var groups = new List<string> { "Admin", "User" };
 
+        var mockDataTimeProvider = new Mock<IDateTimeProvider>();
+
+        var now = DateTime.UtcNow;
+        mockDataTimeProvider.Setup(x => x.UtcNow).Returns(now);
+
+        var jwtTokenService = new JwtTokenService(mockDataTimeProvider.Object);
+
         // Act
-        var token = _jwtTokenService.GenerateTokenForUser(userId, fullName, email, groups);
+        var token = jwtTokenService.GenerateTokenForUser(userId, fullName, email, groups);
 
         // Assert
         var handler = new JwtSecurityTokenHandler();
@@ -51,8 +59,15 @@ public class JwtTokenServiceTests
         // Arrange
         var resourceId = "12345";
 
+        var mockDataTimeProvider = new Mock<IDateTimeProvider>();
+
+        var now = DateTime.UtcNow;
+        mockDataTimeProvider.Setup(x => x.UtcNow).Returns(now);
+
+        var jwtTokenService = new JwtTokenService(mockDataTimeProvider.Object);
+
         // Act
-        var token = _jwtTokenService.GenerateTokenForResource($"files:read:{resourceId}");
+        var token = jwtTokenService.GenerateTokenForResource($"files:read:{resourceId}");
         
         // Assert
         var handler = new JwtSecurityTokenHandler();
@@ -70,13 +85,46 @@ public class JwtTokenServiceTests
         var fullName = "Jane Doe";
         var email = "jane.doe@example.com";
         var groups = new List<string> { "User" };
-        var token = _jwtTokenService.GenerateTokenForUser(userId, fullName, email, groups);
+
+        var mockDataTimeProvider = new Mock<IDateTimeProvider>();
+
+        var now = DateTime.UtcNow;
+        mockDataTimeProvider.Setup(x => x.UtcNow).Returns(now);
+
+        var jwtTokenService = new JwtTokenService(mockDataTimeProvider.Object);
+
+        var token = jwtTokenService.GenerateTokenForUser(userId, fullName, email, groups);
 
         // Act
-        var result = _jwtTokenService.ValidateToken(token);
+        var result = jwtTokenService.ValidateToken(token);
 
         // Assert
         result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ValidateToken_ShouldReturnFalse_WhenTokenHasExpired()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var fullName = "Jane Doe";
+        var email = "jane.doe@example.com";
+        var groups = new List<string> { "User" };
+
+        var mockDataTimeProvider = new Mock<IDateTimeProvider>();
+
+        var now = DateTime.UtcNow.AddMinutes(-30);
+        mockDataTimeProvider.Setup(x => x.UtcNow).Returns(now);
+
+        var jwtTokenService = new JwtTokenService(mockDataTimeProvider.Object);
+
+        var token = jwtTokenService.GenerateTokenForUser(userId, fullName, email, groups);
+
+        // Act
+        var result = jwtTokenService.ValidateToken(token);
+
+        // Assert
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -85,10 +133,19 @@ public class JwtTokenServiceTests
         // Arrange
         var invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzb21lX3VzZXIifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
 
+        var mockDataTimeProvider = new Mock<IDateTimeProvider>();
+
+        var now = DateTime.UtcNow;
+        mockDataTimeProvider.Setup(x => x.UtcNow).Returns(now);
+
+        var jwtTokenService = new JwtTokenService(mockDataTimeProvider.Object);
+
         // Act
-        var result = _jwtTokenService.ValidateToken(invalidToken);
+        var result = jwtTokenService.ValidateToken(invalidToken);
 
         // Assert
         result.Should().BeFalse();
     }
+
+    
 }

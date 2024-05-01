@@ -9,10 +9,12 @@ public class JwtTokenService : ITokenService
 {
     private const string SecretKey = "your_very_long_secret_here_more_than_128_bits";
     private readonly SymmetricSecurityKey _signingKey;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
-    public JwtTokenService()
+    public JwtTokenService(IDateTimeProvider dateTimeProvider)
     {
         _signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(SecretKey));
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public string GenerateTokenForResource(string scope, TimeSpan? lifeSpan = null)
@@ -90,7 +92,7 @@ public class JwtTokenService : ITokenService
             issuer: "MyIssuer",
             audience: "MyAudience",
             claims: claims,
-            expires: DateTime.Now.Add(lifeSpan),
+            expires: _dateTimeProvider.UtcNow.Add(lifeSpan),
             signingCredentials: new SigningCredentials(_signingKey, SecurityAlgorithms.HmacSha256)
         );
 

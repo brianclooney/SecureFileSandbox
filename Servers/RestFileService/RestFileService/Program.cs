@@ -1,13 +1,10 @@
 using Carter;
-using FluentValidation;
 using Serilog;
 using Serilog.Events;
-using Swashbuckle.AspNetCore.Swagger;
 using Microsoft.EntityFrameworkCore;
 using RestFileService.Data;
 using RestFileService.Data.Extensions;
 using RestFileService.Features.Users;
-using RestFileService.Features.Users.Endpoints;
 using RestFileService.Common.Middleware;
 using RestFileService.Common.Services;
 
@@ -25,6 +22,7 @@ builder.Host.UseSerilog();
 builder.Services.AddScoped<IPasswordHasher, AspIdentityPasswordHasher>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
+builder.Services.AddScoped<IDateTimeProvider, DateTimeProvider>();
 
 builder.Services.AddMvcCore();
 builder.Services.AddEndpointsApiExplorer();
