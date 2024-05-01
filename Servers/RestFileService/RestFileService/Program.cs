@@ -7,6 +7,7 @@ using RestFileService.Data.Extensions;
 using RestFileService.Features.Users;
 using RestFileService.Common.Middleware;
 using RestFileService.Common.Services;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,10 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+
+var jwtSettings = new JwtSettings();                                                                                                                                                                                                          
+builder.Configuration.Bind(JwtSettings.SectionName, jwtSettings);                                                                                                                                                                                                                                                                                                                                                                                                                           
+builder.Services.AddSingleton(Options.Create(jwtSettings));    
 
 builder.Services.AddScoped<IPasswordHasher, AspIdentityPasswordHasher>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();

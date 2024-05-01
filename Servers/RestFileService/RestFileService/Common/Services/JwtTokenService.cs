@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -7,13 +8,14 @@ namespace RestFileService.Common.Services;
 
 public class JwtTokenService : ITokenService
 {
-    private const string SecretKey = "your_very_long_secret_here_more_than_128_bits";
     private readonly SymmetricSecurityKey _signingKey;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly JwtSettings _jwtSettings;
 
-    public JwtTokenService(IDateTimeProvider dateTimeProvider)
+    public JwtTokenService(IDateTimeProvider dateTimeProvider, IOptions<JwtSettings> jwtOptions)
     {
-        _signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(SecretKey));
+        _jwtSettings = jwtOptions.Value;
+        _signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_jwtSettings.Secret));
         _dateTimeProvider = dateTimeProvider;
     }
 
@@ -25,7 +27,7 @@ public class JwtTokenService : ITokenService
             new Claim("jti", Guid.NewGuid().ToString())
         };
 
-        return GenerateToken(claims, lifeSpan ?? TimeSpan.FromMinutes(60));
+        return GenerateToken(claims, lifeSpan ?? TimeSpan.FromMinutes(_jwtSettings.LifeSpanMinutes));
     }
 
 
@@ -37,7 +39,7 @@ public class JwtTokenService : ITokenService
             new Claim("jti", Guid.NewGuid().ToString())
         };
 
-        return GenerateToken(claims, lifeSpan ?? TimeSpan.FromMinutes(60));
+        return GenerateToken(claims, lifeSpan ?? TimeSpan.FromMinutes(_jwtSettings.LifeSpanMinutes));
     }
 
     public string GenerateTokenForUser(Guid userId, string userName, string email, List<string> groups, TimeSpan? lifeSpan = null)
@@ -56,7 +58,7 @@ public class JwtTokenService : ITokenService
             claims.Add(new Claim("groups", group));
         }
 
-        return GenerateToken(claims, lifeSpan ?? TimeSpan.FromMinutes(15));
+        return GenerateToken(claims, lifeSpan ?? TimeSpan.FromMinutes(_jwtSettings.LifeSpanMinutes));
     }
 
     public bool ValidateToken(string token)
@@ -68,9 +70,9 @@ public class JwtTokenService : ITokenService
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = _signingKey,
             ValidateIssuer = true,
-            ValidIssuer = "MyIssuer",
+            ValidIssuer = _jwtSettings.Issuer,
             ValidateAudience = true,
-            ValidAudience = "MyAudience",
+            ValidAudience = _jwtSettings.Audience,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
@@ -89,8 +91,8 @@ public class JwtTokenService : ITokenService
     private string GenerateToken(List<Claim> claims, TimeSpan lifeSpan)
     {
         var token = new JwtSecurityToken(
-            issuer: "MyIssuer",
-            audience: "MyAudience",
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Audience,
             claims: claims,
             expires: _dateTimeProvider.UtcNow.Add(lifeSpan),
             signingCredentials: new SigningCredentials(_signingKey, SecurityAlgorithms.HmacSha256)
